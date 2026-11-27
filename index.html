@@ -30,6 +30,7 @@
     --measure:720px;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   html{-webkit-text-size-adjust:100%}
   body{
     margin:0;
@@ -602,7 +603,10 @@
     if (amount === null || !isFinite(amount) || amount <= 0) return null;
     var sym = trip.currencySymbol || (trip.currency === "JPY" ? "¥" : trip.currency === "EUR" ? "€" : trip.currency === "USD" ? "$" : "");
     var n = new Intl.NumberFormat("ko-KR").format(amount);
-    return { text: sym ? sym + n : n + (trip.currencyUnit ? " " + trip.currencyUnit : ""), unit: trip.currencyUnit && sym ? trip.currencyUnit : "" };
+    return {
+      text: sym ? sym + n : n,
+      unit: (!sym && trip.currencyUnit) ? trip.currencyUnit : ""
+    };
   }
 
   function mapUrl(item, trip){
@@ -747,7 +751,7 @@
     if (it.memo) body.appendChild(h("div", { class: "memo", text: it.memo }));
 
     var m = money(trip, it.cost);
-    if (m) body.appendChild(h("div", { class: "cost num", text: m.text, }, m.unit ? h("small", { text: "(" + m.unit + ")" }) : null));
+    if (m) body.appendChild(h("div", { class: "cost num", text: m.text, }, (m.unit && !trip.currencySymbol) ? h("small", { text: m.unit }) : null));
 
     /* 좋아요 · 메모 · 지도 */
     var likeBtn = h("button", {
