@@ -5,6 +5,13 @@ XO Trip에서 만든 여행 일정을 **링크 하나로** 건네는 웹 뷰어�
 
 - 공유 주소: <https://zzozzi-rgb.github.io/Xo-trip-share/>
 
+<p align="center">
+  <img src="docs/preview-mobile.png" alt="XO Trip 공유 뷰어 – 모바일" width="330">
+  <img src="docs/preview-desktop.png" alt="XO Trip 공유 뷰어 – 데스크톱" width="420">
+</p>
+
+> 화면의 일정은 뷰어 동작을 보여 주는 가상 샘플(교토 1박 2일)이며 실제 개인 일정이 아닙니다.
+
 ## 무엇을 하나
 
 1. XO Trip 앱에서 **여행 관리 → 현재 일정 JSON 복사**(또는 **여행 메이트 부분 공유**)로 JSON을 받습니다.
