@@ -810,7 +810,7 @@
 
     var catMap = {};
     (Array.isArray(doc.categories) ? doc.categories : []).forEach(function(c){
-      if (c && typeof c === "object" && str(c.key)) catMap[str(c.key)] = { label: str(c.label) || str(c.key), glyph: str(c.glyph) };
+      if (c && typeof c === "object" && str(c.key)) catMap[str(c.key)] = { label: str(c.label), glyph: str(c.glyph) };
     });
 
     var baseIndex = 0;
