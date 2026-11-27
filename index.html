@@ -355,7 +355,6 @@
   var CANONICAL_BASE = "https://zzozzi-rgb.github.io/Xo-trip-share/";
   var FEEDBACK_KEY = "xo-trip-share-feedback-v1";
   var NICK_KEY = "xo-trip-share-nick-v1";
-  var MYROWS_KEY = "xo-trip-share-myrows-v1";
 
   /* Supabase — 공개용 publishable key (RLS 적용). 짧은 링크·동행자 반응 저장소. */
   var SUPABASE_URL = "https://amwtfuzgovugwjgksevu.supabase.co";
@@ -810,33 +809,32 @@
     return v || "동행자";
   }
 
-  /* 내가 남긴 행의 id — 서버에 쌓인 내 좋아요·메모를 고치거나 지울 때 씁니다. */
-  function myRows(){
-    try {
-      var raw = localStorage.getItem(MYROWS_KEY);
-      var o = raw ? JSON.parse(raw) : {};
-      return (o && typeof o === "object") ? o : {};
-    } catch (e) { return {}; }
-  }
-  function myRowKey(itemId){ return (state.tripKey || "") + "|" + itemId; }
-  function myRowId(itemId){ return myRows()[myRowKey(itemId)] || null; }
-  function setMyRow(itemId, id){
-    var m = myRows(), k = myRowKey(itemId);
-    if (id) m[k] = id; else delete m[k];
-    try { localStorage.setItem(MYROWS_KEY, JSON.stringify(m)); } catch (e) { /* 저장 불가 */ }
-  }
-
+  /* 화면 표시 — 테이블은 넣기만 쌓이므로 사람(trip·item·작성자)마다 **가장 최근 행**이 그 사람의 현재 반응입니다.
+     좋아요를 끄거나 메모를 비우면 그 내용이 빈 행이 되어 목록에서 빠집니다. */
   function reactionsByItem(){
-    var map = {};
+    var latest = {};
     (state.reactions || []).forEach(function(r){
       if (!r || !r.item_id) return;
-      var e = map[r.item_id] || (map[r.item_id] = { likes: [], memos: [] });
       var name = String(r.author || "").trim() || "동행자";
-      if (r.liked && e.likes.indexOf(name) < 0) e.likes.push(name);
-      var memo = String(r.memo || "").trim();
-      if (memo) e.memos.push({ who: name, text: memo });
+      latest[r.item_id + "\u0000" + name] = { item_id: r.item_id, name: name, liked: !!r.liked, memo: String(r.memo || "").trim() };
+    });
+    var map = {};
+    Object.keys(latest).forEach(function(k){
+      var r = latest[k];
+      if (!r.liked && !r.memo) return;
+      var e = map[r.item_id] || (map[r.item_id] = { likes: [], memos: [] });
+      if (r.liked) e.likes.push(r.name);
+      if (r.memo) e.memos.push({ who: r.name, text: r.memo });
     });
     return map;
+  }
+
+  function hasServerReaction(itemId, author){
+    return (state.reactions || []).some(function(r){
+      if (!r || r.item_id !== itemId) return false;
+      var name = String(r.author || "").trim() || "동행자";
+      return name === author && (!!r.liked || String(r.memo || "").trim() !== "");
+    });
   }
 
   async function loadReactions(silent){
@@ -861,35 +859,24 @@
     }
   }
 
-  /* 내 좋아요·메모를 서버에 반영 — 내 행이 있으면 고치고, 없으면 새로 넣고, 비면 지웁니다. */
+  /* 내 좋아요·메모를 서버에 반영 — 테이블은 INSERT만 허용되므로 행을 고치지 않고 새 행을 더합니다.
+     (INSERT 외의 요청은 RLS에서 조용히 무시되어 반영되지 않으므로 시도하지 않습니다.) */
   async function pushReaction(itemId){
     if (!state.tripKey) return;
     var key = state.tripKey;
     var fb = tripFeedback()[itemId] || {};
+    var author = currentNick();
     var liked = !!fb.like;
     var memo = String(fb.memo || "").trim();
-    var rowId = myRowId(itemId);
-    var author = currentNick();
+
+    if (!liked && !memo && !hasServerReaction(itemId, author)) return; /* 거둘 것이 없음 */
+
     try {
-      if (!liked && !memo) {
-        if (rowId) {
-          await sbRequest("trip_reactions?id=eq." + encodeURIComponent(rowId), { method: "DELETE", prefer: "return=minimal" });
-          setMyRow(itemId, null);
-        }
-      } else if (rowId) {
-        await sbRequest("trip_reactions?id=eq." + encodeURIComponent(rowId), {
-          method: "PATCH",
-          body: { author: author, liked: liked, memo: memo || null },
-          prefer: "return=minimal"
-        });
-      } else {
-        var rows = await sbRequest("trip_reactions", {
-          method: "POST",
-          body: { trip_id: key, item_id: itemId, author: author, liked: liked, memo: memo || null },
-          prefer: "return=representation"
-        });
-        if (rows && rows[0] && rows[0].id !== undefined) setMyRow(itemId, rows[0].id);
-      }
+      await sbRequest("trip_reactions", {
+        method: "POST",
+        body: { trip_id: key, item_id: itemId, author: author, liked: liked, memo: memo || null },
+        prefer: "return=minimal"
+      });
       if (state.tripKey !== key) return;
       await loadReactions(true);
     } catch (e) {
@@ -1438,12 +1425,14 @@
     toast(ok ? "의견을 복사했습니다. 카톡에 붙여넣으세요" : "복사하지 못했습니다");
   });
   $("clearFeedback").addEventListener("click", function(){
-    if (!window.confirm("이 브라우저에 남긴 좋아요·메모를 모두 지울까요?")) return;
+    if (!window.confirm("이 브라우저에 남긴 좋아요·메모를 모두 지울까요? 함께 보는 사람 화면에서도 내 반응이 빠집니다.")) return;
     var id = state.trip ? state.trip.id : "sample";
+    var had = Object.keys(state.feedback[id] || {});
     delete state.feedback[id];
     saveStore(state.feedback);
     renderDay(state.trip);
     updateFeedbackBar();
+    if (state.tripKey) had.forEach(function(itemId){ pushReaction(itemId); });
     toast("의견을 지웠습니다");
   });
   window.addEventListener("hashchange", function(){ boot(); });
