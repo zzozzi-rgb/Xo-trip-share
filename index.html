@@ -874,7 +874,7 @@
     try {
       await sbRequest("trip_reactions", {
         method: "POST",
-        body: { trip_id: key, item_id: itemId, author: author, liked: liked, memo: memo || null },
+        body: { trip_id: key, item_id: itemId, author: author, liked: liked, memo: memo },
         prefer: "return=minimal"
       });
       if (state.tripKey !== key) return;
