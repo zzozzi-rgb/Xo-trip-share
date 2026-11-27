@@ -255,6 +255,7 @@
 
     <div class="notice" id="sampleNotice" hidden>
       <span><strong>샘플 일정입니다.</strong> 받은 링크를 열거나, XO Trip에서 복사한 JSON을 붙여넣으면 이 자리에 일정이 나타납니다.</span>
+      <button class="btn btn-accent" id="noticeCompose">JSON 붙여넣기</button>
     </div>
     <div class="notice err" id="errorNotice" hidden>
       <span id="errorText"></span>
@@ -860,7 +861,7 @@
       value: fb.memo || "",
       "aria-label": it.title + " 한 줄 메모"
     });
-    var editor = h("div", { class: "memoedit", hidden: !fb.memo },
+    var editor = h("div", { class: "memoedit", hidden: true },
       input,
       h("button", { class: "btn", type: "button", onclick: function(){ setMemo(it.id, input.value, row); } , text: "저장" })
     );
@@ -1114,6 +1115,7 @@
   $("toggleComposer").addEventListener("click", function(){
     setComposer($("composer").hidden);
   });
+  $("noticeCompose").addEventListener("click", function(){ setComposer(true); });
   $("buildLink").addEventListener("click", buildLink);
   $("clearJson").addEventListener("click", function(){
     $("jsonInput").value = "";
