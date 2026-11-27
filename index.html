@@ -235,9 +235,10 @@
   .pill.like[aria-pressed="true"]{border-color:rgba(192,86,47,.42);background:var(--accent-2);color:var(--accent)}
   .pill.like[aria-pressed="true"] svg{fill:rgba(192,86,47,.18)}
   .pill.like[aria-pressed="false"] svg{color:var(--ink-3)}
-  .cost{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
+  .cost{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
+  .acts-right{margin-left:auto;display:inline-flex;align-items:center;gap:7px;flex:none}
   .mapbtn{
-    margin-left:7px;flex:none;width:32px;height:32px;border-radius:9px;
+    margin-left:0;flex:none;width:32px;height:32px;border-radius:9px;
     display:grid;place-items:center;border:1px solid var(--line);
     background:var(--paper-2);color:var(--ink-2);transition:background .15s,border-color .15s,color .15s;
   }
@@ -1401,13 +1402,15 @@
     memoBtn.addEventListener("click", function(){ toggleMemoEditor(row); });
 
     var acts = h("div", { class: "acts" }, likeBtn, memoBtn);
+    var right = h("span", { class: "acts-right" });
     var m = money(trip, it.cost);
-    if (m) acts.appendChild(h("span", { class: "cost num", text: m.text + (m.unit ? " " + m.unit : "") }));
+    if (m) right.appendChild(h("span", { class: "cost num", text: m.text + (m.unit ? " " + m.unit : "") }));
 
     var mapHref = mapUrl(it, trip);
     if (mapHref) {
-      acts.appendChild(h("a", { class: "mapbtn", href: mapHref, target: "_blank", rel: "noopener noreferrer", "aria-label": it.title + " 지도에서 열기", title: "지도" }, svg("pin")));
+      right.appendChild(h("a", { class: "mapbtn", href: mapHref, target: "_blank", rel: "noopener noreferrer", "aria-label": it.title + " 지도에서 열기", title: "지도" }, svg("pin")));
     }
+    if (right.childNodes.length) acts.appendChild(right);
     card.appendChild(acts);
 
     if (peers.memos.length) {
