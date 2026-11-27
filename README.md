@@ -56,6 +56,19 @@ reservations[] (title·badge·tone·code·lines[]·phone)
 주소에 `#d=…`가 없으면 **가상의 샘플 일정**(교토 1박 2일, 실제 개인 일정 아님)이 보입니다.
 샘플은 뷰어의 동작을 보여 주기 위한 것이며 실제 여행 정보는 담겨 있지 않습니다.
 
+## 배포
+
+이 저장소의 GitHub Pages는 **`gh-pages` 브랜치**를 배포 소스로 쓰고 있습니다(설정 화면에서 `main`으로
+바꿀 수 있습니다). `main`만 고치면 사이트는 그대로이므로, 고친 뒤에는 두 브랜치를 같게 맞춰 주세요.
+
+```bash
+git push origin main
+git push -f origin main:gh-pages
+```
+
+Pages 소스를 `main`(root)으로 한 번 바꿔 두면 위 두 번째 줄은 필요 없어지고 `gh-pages`도 지워도 됩니다:
+<https://github.com/zzozzi-rgb/Xo-trip-share/settings/pages>
+
 ## 로컬에서 열기
 
 `index.html`을 브라우저로 열면 됩니다. `file://`로 열었을 때 만들어진 링크는
