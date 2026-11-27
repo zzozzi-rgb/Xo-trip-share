@@ -6,10 +6,16 @@
 <title>XO Trip · 일정</title>
 <meta name="description" content="링크 하나로 여는 여행 일정. 함께 보는 사람과 좋아요·메모를 나눕니다.">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#F8F3EA">
+<meta name="theme-color" content="#F5F7FA">
 <meta property="og:title" content="XO Trip · 일정">
 <meta property="og:description" content="링크 하나로 여행 일정을 함께 봅니다.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F8F3EA'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-size='27' font-weight='700' fill='%231B1A17' text-anchor='middle'%3EXO%3C/text%3E%3Ccircle cx='32' cy='52' r='2.6' fill='%23C0562F'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="XO Trip">
 <style>
   :root{
     --paper:#F8F3EA;
@@ -73,6 +79,15 @@
   .iconbtn.solid{background:var(--ink);border-color:var(--ink);color:var(--paper-2)}
   .iconbtn.solid:hover{background:#000}
   .iconbtn.quiet{background:transparent;border-color:var(--line-2);color:var(--ink-2)}
+  .iconbtn.textbtn{width:auto;padding:0 11px;font-size:11px;font-weight:700;letter-spacing:.02em;gap:6px;background:var(--ink);border-color:var(--ink);color:var(--paper-2)}
+  .iconbtn.textbtn:hover{background:#000}
+  .editing .title,.editing #tripTitle{outline:2px dashed var(--accent);outline-offset:4px;border-radius:4px;cursor:text}
+  .editing .title:focus,#tripTitle:focus{outline-style:solid}
+  @media(max-width:430px){
+    .brand span{display:none}
+    .iconbtn.textbtn{padding:0 8px;font-size:10.5px}
+    .topacts{gap:5px}
+  }
 
   /* ── hero ────────────────────────────────── */
   .side{padding-top:6px}
@@ -456,6 +471,10 @@
   <header class="topbar" id="topbar">
     <div class="brand"><b>XO</b><i></i><span>TRIP</span></div>
     <div class="topacts">
+      <a class="iconbtn textbtn" id="openAppBtn" hidden href="#" aria-label="XO Trip 앱에서 열기">앱에서 열기</a>
+      <button class="iconbtn quiet" id="cloneBtn" hidden aria-label="내 일정으로 복제" title="내 일정으로 복제"></button>
+      <button class="iconbtn quiet" id="editBtn" hidden aria-label="제목 편집" title="제목 편집"></button>
+      <button class="iconbtn quiet" id="icsBtn" hidden aria-label="캘린더에 저장" title="캘린더에 저장"></button>
       <button class="iconbtn" id="shareBtn" hidden aria-label="공유" title="공유"></button>
       <button class="iconbtn quiet" id="toggleComposer" aria-expanded="false" aria-controls="composer" aria-label="일정 링크 만들기" title="일정 링크 만들기"></button>
     </div>
@@ -582,6 +601,7 @@
   var CANONICAL_BASE = "https://zzozzi-rgb.github.io/Xo-trip-share/";
   var FEEDBACK_KEY = "xo-trip-share-feedback-v1";
   var NICK_KEY = "xo-trip-share-nick-v1";
+  var LOCAL_KEY = "xo-trip-share-local-v1";
 
   /* Supabase — 공개용 publishable key (RLS 적용). 짧은 링크·동행자 반응 저장소. */
   var SUPABASE_URL = "https://amwtfuzgovugwjgksevu.supabase.co";
@@ -616,6 +636,7 @@
     plus:     '<path d="M12 5v14M5 12h14"/>',
     close:    '<path d="m6 6 12 12M18 6 6 18"/>',
     copy:     '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4V4h11v1"/>',
+    pen:      '<path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
     trash:    '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/>',
     ticket:   '<path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4 2 2 0 0 1 0-4Z"/><path d="M14 6v12" stroke-dasharray="2 3"/>',
     link:     '<path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1-1"/>',
@@ -1035,10 +1056,56 @@
     try { localStorage.setItem(FEEDBACK_KEY, JSON.stringify(store)); } catch (e) { /* 저장 불가 */ }
   }
 
+  /* ── 내 일정 복제·간단 편집 (localStorage) ─────────────────── */
+  function loadLocalMap(){
+    try {
+      var raw = localStorage.getItem(LOCAL_KEY);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return (parsed && typeof parsed === "object") ? parsed : {};
+    } catch (e) { return {}; }
+  }
+  function loadLocal(id){
+    var map = loadLocalMap();
+    return map[id] || null;
+  }
+  function saveLocal(trip){
+    if (!trip || !trip.id) return;
+    var map = loadLocalMap();
+    map[trip.id] = trip;
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(map)); } catch (e) { /* 저장 불가 */ }
+  }
+  function cloneCurrent(){
+    if (!state.trip) return;
+    var copy = JSON.parse(JSON.stringify(state.trip));
+    copy.id = "local-" + Date.now().toString(36);
+    copy.title = (copy.title || "내 여행") + " (내 사본)";
+    copy.note = "웹에서 복제한 일정입니다. 제목과 장소명을 눌러 고칠 수 있어요.";
+    saveLocal(copy);
+    try {
+      var url = new URL(location.href);
+      url.search = "?local=" + encodeURIComponent(copy.id);
+      url.hash = "";
+      history.replaceState(null, "", url.toString());
+    } catch (e) { /* 주소 변경 불가 */ }
+    render(copy, "local", {});
+    toast("내 일정으로 복제했어요");
+  }
+  function setEditing(on){
+    if (!state.trip || state.source !== "local") return;
+    state.editing = !!on;
+    document.body.classList.toggle("editing", state.editing);
+    var btn = $("editBtn");
+    if (btn) btn.classList.toggle("solid", state.editing);
+    renderMeta(state.trip);
+    renderDay(state.trip);
+    if (state.editing) toast("제목을 눌러 고치세요");
+  }
+
   /* ── 상태 ─────────────────────────────────────────────────── */
   var state = {
     trip: null, source: "sample", activeDay: null, feedback: {},
-    shortId: null, tripKey: null, reactions: [], reactionsError: ""
+    shortId: null, tripKey: null, reactions: [], reactionsError: "",
+    editing: false
   };
 
   function tripFeedback(){
@@ -1086,6 +1153,11 @@
       var err = new Error(e && e.name === "AbortError" ? "서버 응답이 없습니다" : "네트워크에 연결하지 못했습니다");
       throw err;
     });
+  }
+
+  /* RPC 우선 호출 — 함수가 아직 없는 서버(404/400)면 호출부가 기존 테이블 GET 으로 폴백합니다. */
+  function sbRpc(name, body){
+    return sbRequest("rpc/" + name, { method: "POST", body: body || {} });
   }
 
   function randomShortId(){
@@ -1166,8 +1238,15 @@
     if (!state.tripKey) return;
     var key = state.tripKey;
     try {
-      var rows = await sbRequest("trip_reactions?trip_id=eq." + encodeURIComponent(key) +
-        "&select=id,item_id,author,liked,memo,created_at&order=created_at.asc");
+      var rows;
+      try {
+        rows = await sbRpc("get_trip_reactions", { p_trip_id: key });
+      } catch (rpcErr) {
+        if (!rpcErr || (rpcErr.status !== 404 && rpcErr.status !== 400)) throw rpcErr;
+        rows = await sbRequest("trip_reactions?trip_id=eq." + encodeURIComponent(key) +
+          "&select=id,item_id,author,liked,memo,created_at&order=created_at.asc");
+      }
+      if (!Array.isArray(rows) && rows && Array.isArray(rows.data)) rows = rows.data;
       if (state.tripKey !== key) return;
       var next = Array.isArray(rows) ? rows : [];
       var same = JSON.stringify(next) === JSON.stringify(state.reactions);
@@ -1227,7 +1306,23 @@
   /* ── 렌더 ─────────────────────────────────────────────────── */
   function renderMeta(trip){
     $("kicker").textContent = (state.source === "sample" ? "샘플 · " : "") + (trip.place || "TRIP");
-    $("tripTitle").textContent = trip.title;
+    var titleEl = $("tripTitle");
+    titleEl.textContent = trip.title;
+    if (state.editing && state.source === "local") {
+      titleEl.setAttribute("contenteditable", "true");
+      titleEl.setAttribute("spellcheck", "false");
+      titleEl.onblur = function(){
+        var next = titleEl.textContent.trim();
+        if (!next) { titleEl.textContent = trip.title; return; }
+        trip.title = next;
+        state.trip.title = next;
+        saveLocal(state.trip);
+        document.title = next + " · XO Trip";
+      };
+    } else {
+      titleEl.removeAttribute("contenteditable");
+      titleEl.onblur = null;
+    }
     document.title = trip.title + " · XO Trip";
 
     var meta = $("tripMeta");
@@ -1350,12 +1445,23 @@
     if (it.together) badges.appendChild(h("span", { class: "badge together", text: "함께" }));
     if (it.status && it.statusTone !== "none") badges.appendChild(h("span", { class: "badge " + it.statusTone, text: it.status }));
 
+    var titleEl = h("h3", { class: "title", text: it.title });
+    if (state.editing && state.source === "local") {
+      titleEl.setAttribute("contenteditable", "true");
+      titleEl.setAttribute("spellcheck", "false");
+      titleEl.addEventListener("blur", function(){
+        var next = titleEl.textContent.trim();
+        if (!next) { titleEl.textContent = it.title; return; }
+        it.title = next;
+        saveLocal(state.trip);
+      });
+    }
     var card = h("article", { class: "card" },
       h("div", { class: "crow" },
         h("span", { class: "tag", style: style }, svg(st.i), h("span", { text: catLabel(trip, it.cat) })),
         badges
       ),
-      h("h3", { class: "title", text: it.title })
+      titleEl
     );
 
     if (it.route) {
@@ -1573,7 +1679,9 @@
     state.trip = trip;
     state.source = source;
     state.shortId = opts.shortId || null;
-    state.tripKey = (source === "sample") ? null : (state.shortId || trip.id || null);
+    state.editing = false;
+    document.body.classList.remove("editing");
+    state.tripKey = (source === "sample" || source === "local") ? null : (state.shortId || trip.id || null);
     state.reactions = [];
     state.reactionsError = "";
     state.activeDay = trip.days.length ? trip.days[0].index : null;
@@ -1594,8 +1702,15 @@
     if (trip.note) { note.textContent = trip.note; note.hidden = false; } else note.hidden = true;
 
     $("sampleNotice").hidden = (source !== "sample");
+    var openApp = $("openAppBtn");
+    openApp.hidden = !state.shortId;
+    if (state.shortId) openApp.href = "xotrip://open?id=" + encodeURIComponent(state.shortId);
+    $("cloneBtn").hidden = !trip;
+    $("editBtn").hidden = source !== "local";
+    $("editBtn").classList.remove("solid");
+    $("icsBtn").hidden = !trip;
     var sb = $("shareBtn");
-    sb.hidden = !(navigator.share);
+    sb.hidden = !(navigator.share) || source === "local";
     clear(sb);
     sb.appendChild(svg("share"));
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -1867,6 +1982,73 @@
     if (!document.hidden && state.tripKey) loadReactions(true);
   });
 
+  /* ── .ics 캘린더 내보내기 ─────────────────────────────────── */
+  function pad2(n){ return (n < 10 ? "0" : "") + n; }
+  function ymd(d){ return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()); }
+  function dayDateFor(trip, day){
+    var d = null, offset = true;
+    var iso = String(trip.startDate || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      d = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+    } else {
+      var md = String(day.date || "").match(/(\d{1,2})[\/.](\d{1,2})/);
+      if (md) {
+        d = new Date(new Date().getFullYear(), +md[1] - 1, +md[2]);
+        offset = false;
+      }
+    }
+    if (!d) d = new Date();
+    if (offset) d.setDate(d.getDate() + ((day.index || 1) - 1));
+    return d;
+  }
+  function icsEscape(s){
+    return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  }
+  function downloadIcs(){
+    var trip = state.trip;
+    if (!trip) return;
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//XO Trip//Share Viewer//KO", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+    var stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    trip.days.forEach(function(day){
+      var date = dayDateFor(trip, day);
+      day.items.forEach(function(it){
+        var hm = String(it.time || "").match(/^(\d{1,2}):(\d{2})/);
+        if (!hm) return;
+        var start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), +hm[1], +hm[2]);
+        var mins = Number(it.durationMinutes) || 60;
+        var end = new Date(start.getTime() + mins * 60000);
+        var uid = (trip.id || "trip") + "-" + (it.id || Math.random().toString(36).slice(2)) + "@xo-trip";
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:" + icsEscape(uid));
+        lines.push("DTSTAMP:" + stamp);
+        lines.push("DTSTART:" + ymd(start) + "T" + pad2(start.getHours()) + pad2(start.getMinutes()) + "00");
+        lines.push("DTEND:" + ymd(end) + "T" + pad2(end.getHours()) + pad2(end.getMinutes()) + "00");
+        lines.push("SUMMARY:" + icsEscape(it.title));
+        var desc = [it.route, it.memo].filter(Boolean).join("\n");
+        if (desc) lines.push("DESCRIPTION:" + icsEscape(desc));
+        if (it.mapQuery) lines.push("LOCATION:" + icsEscape(it.mapQuery));
+        lines.push("END:VEVENT");
+      });
+    });
+    lines.push("END:VCALENDAR");
+    var blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "xo-trip-" + String(trip.title || "trip").replace(/[\\/:*?"<>|\s]+/g, "-").slice(0, 24) + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+    toast("캘린더 파일(.ics)을 저장했어요");
+  }
+
+  $("cloneBtn").appendChild(svg("copy"));
+  $("cloneBtn").addEventListener("click", cloneCurrent);
+  $("editBtn").appendChild(svg("pen"));
+  $("editBtn").addEventListener("click", function(){ setEditing(!state.editing); });
+  $("icsBtn").appendChild(svg("calendar"));
+  $("icsBtn").addEventListener("click", downloadIcs);
+
   var nickEl = $("nickInput");
   nickEl.addEventListener("input", function(){
     try { localStorage.setItem(NICK_KEY, nickEl.value); } catch (e) { /* 저장 불가 */ }
@@ -1893,6 +2075,13 @@
     try { nickEl.value = localStorage.getItem(NICK_KEY) || ""; } catch (e) { nickEl.value = ""; }
     $("nickAv").textContent = initial(nickEl.value || "동");
 
+    var localParam = "";
+    try { localParam = (new URLSearchParams(location.search).get("local") || "").trim(); } catch (e) { localParam = ""; }
+    if (localParam) {
+      var localTrip = loadLocal(localParam);
+      if (localTrip) { render(localTrip, "local", {}); return; }
+    }
+
     var shortParam = "";
     try { shortParam = (new URLSearchParams(location.search).get("id") || "").trim(); } catch (e) { shortParam = ""; }
     var payload = readHashPayload();
@@ -1902,10 +2091,19 @@
       $("schedule").appendChild(h("div", { class: "sk sk-head" }));
       $("schedule").appendChild(h("div", { class: "sk sk-card" }));
       try {
-        var rows = await sbRequest("shared_trips?id=eq." + encodeURIComponent(shortParam) + "&select=id,title,payload");
-        var row = (rows && rows[0]) || null;
-        if (!row || !row.payload) throw new Error("이 짧은 링크의 일정을 찾지 못했습니다.");
-        var shortTrip = normalize(row.payload);
+        var rows;
+        try {
+          rows = await sbRpc("get_shared_trip", { p_id: shortParam });
+        } catch (rpcErr) {
+          if (!rpcErr || (rpcErr.status !== 404 && rpcErr.status !== 400)) throw rpcErr;
+          rows = await sbRequest("shared_trips?id=eq." + encodeURIComponent(shortParam) + "&select=id,title,payload");
+        }
+        var row = Array.isArray(rows) ? rows[0] : rows;
+        if (row && Array.isArray(row.data)) row = row.data[0];
+        if (!row) throw new Error("이 짧은 링크의 일정을 찾지 못했습니다.");
+        var payloadDoc = row.payload || (row.items || row.title ? row : null);
+        if (!payloadDoc) throw new Error("이 짧은 링크의 일정을 찾지 못했습니다.");
+        var shortTrip = normalize(payloadDoc);
         render(shortTrip, "short", { shortId: shortParam });
         return;
       } catch (err) {
@@ -1933,6 +2131,12 @@
       errBox.hidden = false;
       renderSample();
     }
+  }
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){ /* 오프라인 캐시 없이 동작 */ });
+    });
   }
 
   boot();
