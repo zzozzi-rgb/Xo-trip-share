@@ -107,6 +107,8 @@
   textarea#jsonInput::placeholder{color:var(--ink-faint)}
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
   .row .grow{flex:1 1 220px;min-width:0}
+  .rowbtns{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+  .rowbtns .btn{flex:0 0 auto}
   .filelabel{border:1px dashed var(--rule-strong);border-radius:2px;padding:7px 11px;font-size:12px;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
   .filelabel:hover{background:rgba(28,27,24,.05)}
   .filelabel input{display:none}
@@ -292,8 +294,10 @@
           <label class="filelabel">JSON 파일 선택<input type="file" id="fileInput" accept=".json,application/json,text/plain"></label>
           <button class="btn" id="clearJson">비우기</button>
           <span class="grow"></span>
-          <button class="btn btn-accent" id="makeShort">짧은 링크 만들기</button>
-          <button class="btn btn-solid" id="buildLink">공유 링크 만들기</button>
+          <div class="rowbtns">
+            <button class="btn btn-accent" id="makeShort">짧은 링크 만들기</button>
+            <button class="btn btn-solid" id="buildLink">공유 링크 만들기</button>
+          </div>
         </div>
         <p class="status" id="composerStatus" role="status" aria-live="polite"></p>
         <div class="linkbox" id="linkBox" hidden>
