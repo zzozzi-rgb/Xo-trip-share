@@ -152,7 +152,7 @@
   .body{padding:14px 0 15px 14px;border-left:1px solid var(--rule);min-width:0}
   .itemhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
   .cat{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(200,90,50,.38);border-radius:2px;padding:1px 5px;line-height:1.5;white-space:nowrap}
-  .title{font-weight:600;font-size:15px;letter-spacing:-.005em;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;flex:1 1 auto;min-width:0}
+  .title{font-weight:600;font-size:15px;letter-spacing:-.005em;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;flex:0 1 auto;min-width:0}
   .badge{font-size:10px;letter-spacing:.06em;border-radius:2px;padding:1px 6px;white-space:nowrap;border:1px solid transparent}
   .badge.positive{color:var(--ok);border-color:rgba(63,107,74,.4);background:rgba(63,107,74,.07)}
   .badge.info{color:#2F5C74;border-color:rgba(47,92,116,.35);background:rgba(47,92,116,.06)}
@@ -266,7 +266,7 @@
         <span class="tag">서버 전송 없음</span>
       </div>
       <div class="composer-body">
-        <p class="hint">XO Trip에서 <b>여행 관리 → 현재 일정 JSON 복사</b>(또는 여행 메이트 부분 공유)로 받은 JSON을 그대로 붙여넣으세요. 일정 전체가 압축되어 링크 뒤쪽 <code>#d=…</code> 에 담기고, 링크를 여는 사람의 브라우저 안에서만 열립니다.</p>
+        <p class="hint">XO Trip에서 <b>여행 관리 → 현재 일정 JSON 복사</b>(또는 여행 메이트 부분 공유)로 받은 JSON을 그대로 붙여넣으세요. 일정 전체가 압축되어 링크 뒤쪽 <code>#d=…</code> 에 담기고, 링크를 여는 사람의 브라우저 안에서만 열립니다. 링크에는 화면에 보이는 일정·항공·예약만 담기고, 스팟·체크리스트·장부·쇼핑 목록은 빠집니다.</p>
         <textarea id="jsonInput" spellcheck="false" placeholder='{ "title": "교토 1박 2일", "items": [ … ] }'></textarea>
         <div class="row">
           <label class="filelabel">JSON 파일 선택<input type="file" id="fileInput" accept=".json,application/json,text/plain"></label>
@@ -544,7 +544,7 @@
     });
 
     var tickets = (Array.isArray(doc.tickets) ? doc.tickets : []).filter(function(t){
-      return t && typeof t === "object" && str(t.title);
+      return t && typeof t === "object" && str(t.title) && (str(t.type) || "other").toLowerCase() !== "coupon";
     }).map(function(t){
       return {
         type: (str(t.type) || "other").toLowerCase(),
@@ -586,6 +586,86 @@
       note: str(doc.note).trim(),
       raw: doc
     };
+  }
+
+  /* ── 링크에 담는 압축 문서 ────────────────────────────────────
+     뷰어가 그리는 것만 남깁니다. 여행 JSON의 스팟·체크리스트·비용표·
+     쇼핑 목록 등은 링크에 들어가지 않으므로 링크도 짧고 개인정보도 덜 나갑니다. */
+  function slimDoc(trip){
+    var raw = trip.raw || {};
+    var out = { schemaVersion: 1, id: trip.id, title: trip.title };
+    if (trip.place) out.place = trip.place;
+    if (trip.dateRange) out.dateRange = trip.dateRange;
+    if (str(raw.startDate)) out.startDate = str(raw.startDate);
+    if (str(raw.endDate)) out.endDate = str(raw.endDate);
+    if (trip.stay) out.stay = trip.stay;
+    if (trip.currency) out.currency = trip.currency;
+    if (trip.currencySymbol) out.currencySymbol = trip.currencySymbol;
+    if (trip.currencyUnit) out.currencyUnit = trip.currencyUnit;
+    var krw = Number(raw.krwPerUnit);
+    if (isFinite(krw) && krw > 0) out.krwPerUnit = krw;
+
+    var usedCats = {};
+    trip.days.forEach(function(d){ d.items.forEach(function(it){ usedCats[it.cat] = true; }); });
+    out.categories = Object.keys(usedCats).map(function(key){
+      var c = trip.categories[key] || {};
+      var o = { key: key };
+      if (c.label) o.label = c.label;
+      if (c.glyph) o.glyph = c.glyph;
+      return o;
+    });
+
+    out.days = trip.days.map(function(d){
+      var o = { index: d.index };
+      if (d.date) o.date = d.date;
+      if (d.weekday) o.weekday = d.weekday;
+      if (d.headline) o.headline = d.headline;
+      if (d.summary) o.summary = d.summary;
+      return o;
+    });
+
+    out.items = [];
+    trip.days.forEach(function(d){
+      d.items.forEach(function(it){
+        var o = { id: it.id, day: it.day };
+        if (it.time) o.time = it.time;
+        o.cat = it.cat;
+        o.title = it.title;
+        if (it.route) o.route = it.route;
+        if (it.memo) o.memo = it.memo;
+        if (it.cost !== null && isFinite(it.cost) && it.cost > 0) o.cost = it.cost;
+        if (it.status) { o.status = it.status; if (it.statusTone && it.statusTone !== "none") o.statusTone = it.statusTone; }
+        if (it.lat !== null && it.lon !== null) { o.lat = it.lat; o.lon = it.lon; }
+        else if (it.mapQuery) o.mapQuery = it.mapQuery;
+        if (it.together) o.together = true;
+        out.items.push(o);
+      });
+    });
+
+    if (trip.tickets.length) {
+      out.tickets = trip.tickets.map(function(t){
+        var o = { type: t.type, title: t.title };
+        if (t.subtitle) o.subtitle = t.subtitle;
+        if (t.code) o.code = t.code;
+        if (t.note) o.note = t.note;
+        if (t.url && /^https?:\/\//i.test(t.url)) o.url = t.url;
+        if (t.phone) o.phone = t.phone;
+        return o;
+      });
+    }
+    if (trip.reservations.length) {
+      out.reservations = trip.reservations.map(function(r){
+        var o = { title: r.title };
+        if (r.badge) o.badge = r.badge;
+        if (r.tone) o.tone = r.tone;
+        if (r.code) o.code = r.code;
+        if (r.lines.length) o.lines = r.lines;
+        if (r.phone) o.phone = r.phone;
+        return o;
+      });
+    }
+    if (trip.note) out.note = trip.note;
+    return out;
   }
 
   function catLabel(trip, key){
@@ -1001,7 +1081,7 @@
     try {
       var doc = parsePasted($("jsonInput").value);
       var trip = normalize(doc);
-      var payload = await encodeTrip(doc);
+      var payload = await encodeTrip(slimDoc(trip));
       var url = shareBase() + "#d=" + payload;
       $("shareUrl").value = url;
       $("linkBox").hidden = false;
