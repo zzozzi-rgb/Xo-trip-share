@@ -177,6 +177,19 @@
   .memoedit input::placeholder{color:var(--ink-faint)}
   .savedmemo{margin-top:7px;font-size:12.5px;color:var(--accent);word-break:keep-all}
 
+  /* ── 동행자 반응 ──────────────────────────── */
+  .nickrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 0;padding:10px 12px;border:1px solid var(--rule);background:var(--paper-2);border-radius:2px}
+  .nickrow[hidden]{display:none}
+  .nickrow label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+  .nickrow input{width:110px;border:0;border-bottom:1px solid var(--rule-strong);background:transparent;padding:2px 1px;font:inherit;font-size:13px;color:var(--ink)}
+  .nickrow input::placeholder{color:var(--ink-faint)}
+  .nickrow .nickhint{font-size:11px;color:var(--ink-faint);letter-spacing:.01em;margin-left:auto;word-break:keep-all;line-height:1.5}
+  .reacts{margin-top:10px;padding-top:8px;border-top:1px dashed var(--rule)}
+  .react-head{display:flex;gap:7px;flex-wrap:wrap;align-items:baseline;margin:0;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+  .react-head .rcount{color:var(--accent);font-weight:600;letter-spacing:.02em}
+  .react-memo{margin:4px 0 0;font-size:12px;color:var(--ink-soft);line-height:1.55;word-break:keep-all}
+  .react-memo b{color:var(--ink);font-weight:600;margin-right:4px}
+
   /* ── tickets ──────────────────────────────── */
   section.block{margin-top:38px}
   .blockhead{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px}
@@ -253,6 +266,12 @@
       <div class="statline" id="tripStats" hidden></div>
     </div>
 
+    <div class="nickrow" id="nickRow" hidden>
+      <label for="nickInput">내 이름</label>
+      <input id="nickInput" type="text" maxlength="16" placeholder="동행자" autocomplete="nickname" aria-label="함께 보는 사람에게 보일 내 이름">
+      <span class="nickhint" id="nickHint">좋아요와 메모는 이 링크를 함께 보는 사람에게 바로 보입니다.</span>
+    </div>
+
     <div class="notice" id="sampleNotice" hidden>
       <span><strong>샘플 일정입니다.</strong> 받은 링크를 열거나, XO Trip에서 복사한 JSON을 붙여넣으면 이 자리에 일정이 나타납니다.</span>
       <button class="btn btn-accent" id="noticeCompose">JSON 붙여넣기</button>
@@ -264,15 +283,16 @@
     <section class="composer" id="composer" hidden aria-label="일정 링크 만들기">
       <div class="composer-head">
         <h2>JSON 붙여넣어 공유 링크 만들기</h2>
-        <span class="tag">서버 전송 없음</span>
+        <span class="tag">링크는 내 브라우저에서 생성</span>
       </div>
       <div class="composer-body">
-        <p class="hint">XO Trip에서 <b>여행 관리 → 현재 일정 JSON 복사</b>(또는 여행 메이트 부분 공유)로 받은 JSON을 그대로 붙여넣으세요. 일정 전체가 압축되어 링크 뒤쪽 <code>#d=…</code> 에 담기고, 링크를 여는 사람의 브라우저 안에서만 열립니다. 링크에는 화면에 보이는 일정·항공·예약만 담기고, 스팟·체크리스트·장부·쇼핑 목록은 빠집니다.</p>
+        <p class="hint">XO Trip에서 <b>여행 관리 → 현재 일정 JSON 복사</b>(또는 여행 메이트 부분 공유)로 받은 JSON을 그대로 붙여넣으세요. 일정 전체가 압축되어 링크 뒤쪽 <code>#d=…</code> 에 담기고, 링크를 여는 사람의 브라우저 안에서만 열립니다. 링크에는 화면에 보이는 일정·항공·예약만 담기고, 스팟·체크리스트·장부·쇼핑 목록은 빠집니다. 링크가 길면 <b>[짧은 링크 만들기]</b>로 8자리 주소를 만들 수 있습니다(일정은 서버에 저장됩니다).</p>
         <textarea id="jsonInput" spellcheck="false" placeholder='{ "title": "교토 1박 2일", "items": [ … ] }'></textarea>
         <div class="row">
           <label class="filelabel">JSON 파일 선택<input type="file" id="fileInput" accept=".json,application/json,text/plain"></label>
           <button class="btn" id="clearJson">비우기</button>
           <span class="grow"></span>
+          <button class="btn btn-accent" id="makeShort">짧은 링크 만들기</button>
           <button class="btn btn-solid" id="buildLink">공유 링크 만들기</button>
         </div>
         <p class="status" id="composerStatus" role="status" aria-live="polite"></p>
@@ -308,7 +328,7 @@
   <p class="footnote" id="tripNote" hidden></p>
 
   <footer class="footnote" style="margin-top:30px;border-top:1px solid var(--rule);padding-top:14px;font-style:normal;letter-spacing:.02em">
-    XO Trip · 공유 뷰어 — 일정은 링크 안에만 있고 어디에도 저장되지 않습니다. 이 화면의 좋아요·메모는 이 브라우저에만 남습니다.
+    XO Trip · 공유 뷰어 — <code>#d=</code> 링크의 일정은 링크 안에만 있습니다. 짧은 링크(<code>?id=</code>)의 일정과 동행자 좋아요·메모는 XO의 Supabase에 저장되어 링크를 함께 보는 사람에게 보입니다.
   </footer>
 </div>
 
@@ -334,6 +354,14 @@
 
   var CANONICAL_BASE = "https://zzozzi-rgb.github.io/Xo-trip-share/";
   var FEEDBACK_KEY = "xo-trip-share-feedback-v1";
+  var NICK_KEY = "xo-trip-share-nick-v1";
+  var MYROWS_KEY = "xo-trip-share-myrows-v1";
+
+  /* Supabase — 공개용 publishable key (RLS 적용). 짧은 링크·동행자 반응 저장소. */
+  var SUPABASE_URL = "https://amwtfuzgovugwjgksevu.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_CInwlHQFLWruU8YaOvhyew_Fe7SOhMJ";
+  var SHORT_ID_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
+  var REACT_HINT = "좋아요와 메모는 이 링크를 함께 보는 사람에게 바로 보입니다.";
   var $ = function(id){ return document.getElementById(id); };
 
   /* ── 데모용 가상 샘플 (실제 개인 일정 아님) ───────────────── */
@@ -712,7 +740,10 @@
   }
 
   /* ── 상태 ─────────────────────────────────────────────────── */
-  var state = { trip: null, source: "sample", activeDay: null, feedback: {}, manualFeedback: {} };
+  var state = {
+    trip: null, source: "sample", activeDay: null, feedback: {},
+    shortId: null, tripKey: null, reactions: [], reactionsError: ""
+  };
 
   function tripFeedback(){
     var id = state.trip ? state.trip.id : "sample";
@@ -723,6 +754,164 @@
     var fb = tripFeedback(), n = 0;
     Object.keys(fb).forEach(function(k){ if (fb[k] && (fb[k].like || (fb[k].memo && fb[k].memo.trim()))) n++; });
     return n;
+  }
+
+  /* ── Supabase REST (짧은 링크 · 동행자 반응) ─────────────── */
+  function sbRequest(path, opts){
+    var o = opts || {};
+    var headers = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY };
+    if (o.prefer) headers.Prefer = o.prefer;
+    var init = { method: o.method || "GET", headers: headers, cache: "no-store" };
+    if (o.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(o.body);
+    }
+    var ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timer = null;
+    if (ctl) {
+      init.signal = ctl.signal;
+      timer = setTimeout(function(){ ctl.abort(); }, 12000);
+    }
+    return fetch(SUPABASE_URL + "/rest/v1/" + path, init).then(function(res){
+      if (timer) clearTimeout(timer);
+      return res.text().then(function(txt){
+        var data = null;
+        if (txt) { try { data = JSON.parse(txt); } catch (e) { data = txt; } }
+        if (!res.ok) {
+          var msg = (data && data.message) ? data.message : (data && data.hint ? data.hint : "HTTP " + res.status);
+          var err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    }, function(e){
+      if (timer) clearTimeout(timer);
+      var err = new Error(e && e.name === "AbortError" ? "서버 응답이 없습니다" : "네트워크에 연결하지 못했습니다");
+      throw err;
+    });
+  }
+
+  function randomShortId(){
+    var out = "", i, n = 8;
+    var buf = new Uint8Array(n);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(buf);
+      for (i = 0; i < n; i++) out += SHORT_ID_ALPHABET.charAt(buf[i] % SHORT_ID_ALPHABET.length);
+    } else {
+      for (i = 0; i < n; i++) out += SHORT_ID_ALPHABET.charAt(Math.floor(Math.random() * SHORT_ID_ALPHABET.length));
+    }
+    return out;
+  }
+
+  function currentNick(){
+    var el = $("nickInput");
+    var v = el ? String(el.value || "").trim() : "";
+    return v || "동행자";
+  }
+
+  /* 내가 남긴 행의 id — 서버에 쌓인 내 좋아요·메모를 고치거나 지울 때 씁니다. */
+  function myRows(){
+    try {
+      var raw = localStorage.getItem(MYROWS_KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      return (o && typeof o === "object") ? o : {};
+    } catch (e) { return {}; }
+  }
+  function myRowKey(itemId){ return (state.tripKey || "") + "|" + itemId; }
+  function myRowId(itemId){ return myRows()[myRowKey(itemId)] || null; }
+  function setMyRow(itemId, id){
+    var m = myRows(), k = myRowKey(itemId);
+    if (id) m[k] = id; else delete m[k];
+    try { localStorage.setItem(MYROWS_KEY, JSON.stringify(m)); } catch (e) { /* 저장 불가 */ }
+  }
+
+  function reactionsByItem(){
+    var map = {};
+    (state.reactions || []).forEach(function(r){
+      if (!r || !r.item_id) return;
+      var e = map[r.item_id] || (map[r.item_id] = { likes: [], memos: [] });
+      var name = String(r.author || "").trim() || "동행자";
+      if (r.liked && e.likes.indexOf(name) < 0) e.likes.push(name);
+      var memo = String(r.memo || "").trim();
+      if (memo) e.memos.push({ who: name, text: memo });
+    });
+    return map;
+  }
+
+  async function loadReactions(silent){
+    if (!state.tripKey) return;
+    var key = state.tripKey;
+    try {
+      var rows = await sbRequest("trip_reactions?trip_id=eq." + encodeURIComponent(key) +
+        "&select=id,item_id,author,liked,memo,created_at&order=created_at.asc");
+      if (state.tripKey !== key) return;
+      var next = Array.isArray(rows) ? rows : [];
+      var same = JSON.stringify(next) === JSON.stringify(state.reactions);
+      state.reactions = next;
+      state.reactionsError = "";
+      $("nickHint").textContent = REACT_HINT;
+      if (!same) renderDay(state.trip);
+    } catch (e) {
+      if (state.tripKey !== key) return;
+      state.reactionsError = (e && e.message) ? e.message : "알 수 없는 오류";
+      $("nickHint").textContent = silent
+        ? "동행자 반응을 새로 고치지 못했습니다 — 저장된 내용을 그대로 보여 줍니다."
+        : "동행자 반응을 불러오지 못했습니다 (" + state.reactionsError + "). 이 기기에서만 남길 수 있습니다.";
+    }
+  }
+
+  /* 내 좋아요·메모를 서버에 반영 — 내 행이 있으면 고치고, 없으면 새로 넣고, 비면 지웁니다. */
+  async function pushReaction(itemId){
+    if (!state.tripKey) return;
+    var key = state.tripKey;
+    var fb = tripFeedback()[itemId] || {};
+    var liked = !!fb.like;
+    var memo = String(fb.memo || "").trim();
+    var rowId = myRowId(itemId);
+    var author = currentNick();
+    try {
+      if (!liked && !memo) {
+        if (rowId) {
+          await sbRequest("trip_reactions?id=eq." + encodeURIComponent(rowId), { method: "DELETE", prefer: "return=minimal" });
+          setMyRow(itemId, null);
+        }
+      } else if (rowId) {
+        await sbRequest("trip_reactions?id=eq." + encodeURIComponent(rowId), {
+          method: "PATCH",
+          body: { author: author, liked: liked, memo: memo || null },
+          prefer: "return=minimal"
+        });
+      } else {
+        var rows = await sbRequest("trip_reactions", {
+          method: "POST",
+          body: { trip_id: key, item_id: itemId, author: author, liked: liked, memo: memo || null },
+          prefer: "return=representation"
+        });
+        if (rows && rows[0] && rows[0].id !== undefined) setMyRow(itemId, rows[0].id);
+      }
+      if (state.tripKey !== key) return;
+      await loadReactions(true);
+    } catch (e) {
+      if (state.tripKey !== key) return;
+      toast("서버에 저장하지 못했습니다 — 이 브라우저에만 남겨 둡니다");
+      $("nickHint").textContent = "저장하지 못했습니다 (" + ((e && e.message) || "네트워크") + "). 이 기기에는 남아 있습니다.";
+    }
+  }
+
+  var pollTimer = null;
+  function stopPoll(){
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+  function startPoll(){
+    stopPoll();
+    pollTimer = setInterval(function(){
+      if (document.hidden || !state.tripKey) return;
+      var ae = document.activeElement;
+      if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+      if (document.querySelector(".memoedit:not([hidden])")) return;
+      loadReactions(true);
+    }, 20000);
   }
 
   /* ── 렌더 ─────────────────────────────────────────────────── */
@@ -753,7 +942,7 @@
       stats.appendChild(h("span", null, h("b", { text: String(trip.days.length) }), " 일자"));
       var tk = trip.tickets.filter(function(t){ return t.type === "flight"; }).length;
       if (tk) stats.appendChild(h("span", null, h("b", { text: String(tk) }), " 항공"));
-      stats.appendChild(h("span", null, "서버 저장 없음"));
+      stats.appendChild(h("span", null, state.tripKey ? (state.shortId ? "짧은 링크 · 동행자 반응" : "동행자 반응 공유") : "서버 저장 없음"));
       stats.hidden = false;
     } else stats.hidden = true;
   }
@@ -805,7 +994,8 @@
     if (day.summary) main.appendChild(h("p", { class: "daysummary", text: day.summary }));
 
     var ul = h("ul", { class: "items" });
-    day.items.forEach(function(it){ ul.appendChild(itemRow(trip, it)); });
+    var reactMap = reactionsByItem();
+    day.items.forEach(function(it){ ul.appendChild(itemRow(trip, it, reactMap)); });
     main.appendChild(ul);
 
     if (trip.days.length > 1) {
@@ -814,7 +1004,7 @@
     }
   }
 
-  function itemRow(trip, it){
+  function itemRow(trip, it, reactMap){
     var fb = tripFeedback()[it.id] || {};
 
     var head = h("div", { class: "itemhead" },
@@ -872,6 +1062,22 @@
 
     if (fb.memo) body.appendChild(h("p", { class: "savedmemo", text: "내 메모 — " + fb.memo }));
 
+    /* 함께 보는 사람들이 남긴 좋아요·메모 */
+    var rx = reactMap ? reactMap[it.id] : null;
+    if (rx && (rx.likes.length || rx.memos.length)) {
+      var box = h("div", { class: "reacts" });
+      if (rx.likes.length) {
+        box.appendChild(h("p", { class: "react-head" },
+          h("span", { class: "rcount", text: "👍 " + rx.likes.length }),
+          h("span", { text: rx.likes.join(", ") })
+        ));
+      }
+      rx.memos.forEach(function(m){
+        box.appendChild(h("p", { class: "react-memo" }, h("b", { text: m.who }), m.text));
+      });
+      body.appendChild(box);
+    }
+
     var row = h("li", { class: "item", dataset: { itemId: it.id } },
       h("div", { class: "time num" }, it.time ? it.time : h("span", { class: "dash", text: "—" })),
       body
@@ -899,6 +1105,7 @@
     btn.classList.toggle("on", !!entry.like);
     btn.setAttribute("aria-pressed", entry.like ? "true" : "false");
     updateFeedbackBar();
+    pushReaction(itemId);
   }
 
   function setMemo(itemId, text, row){
@@ -917,6 +1124,7 @@
       if (actionsBox && actionsBox.parentNode) actionsBox.parentNode.insertBefore(p, actionsBox.nextSibling);
     }
     updateFeedbackBar();
+    pushReaction(itemId);
     toast(v ? "메모를 남겼습니다" : "메모를 지웠습니다");
   }
 
@@ -973,11 +1181,19 @@
     }
   }
 
-  function render(trip, source){
+  function render(trip, source, opts){
+    opts = opts || {};
     state.trip = trip;
     state.source = source;
+    state.shortId = opts.shortId || null;
+    state.tripKey = (source === "sample") ? null : (state.shortId || trip.id || null);
+    state.reactions = [];
+    state.reactionsError = "";
     state.activeDay = trip.days.length ? trip.days[0].index : null;
     state.feedback = loadStore();
+
+    $("nickRow").hidden = !state.tripKey;
+    $("nickHint").textContent = REACT_HINT;
 
     renderMeta(trip);
     renderTabs(trip);
@@ -991,6 +1207,9 @@
     $("sampleNotice").hidden = (source !== "sample");
     $("shareBtn").hidden = !(navigator.share);
     window.scrollTo({ top: 0, behavior: "auto" });
+
+    if (state.tripKey) { loadReactions(true); startPoll(); }
+    else stopPoll();
   }
 
   /* ── 의견 복사 ────────────────────────────────────────────── */
@@ -1111,12 +1330,67 @@
     render(trip, "sample");
   }
 
+  /* ── 짧은 링크 만들기 (?id=) ────────────────────────────── */
+  async function createShortLink(){
+    var btn = $("makeShort");
+    btn.disabled = true;
+    status("짧은 링크를 만드는 중…");
+    var trip = null;
+    try {
+      var doc = parsePasted($("jsonInput").value);
+      trip = normalize(doc);
+      var id = null;
+      for (var attempt = 0; attempt < 3 && !id; attempt++) {
+        var cand = randomShortId();
+        try {
+          await sbRequest("shared_trips", {
+            method: "POST",
+            body: { id: cand, title: trip.title, payload: slimDoc(trip) },
+            prefer: "return=minimal"
+          });
+          id = cand;
+        } catch (e) {
+          if (e.status === 409) continue; /* 주소가 겹치면 다시 */
+          throw e;
+        }
+      }
+      if (!id) throw new Error("주소를 겹치지 않게 만들지 못했습니다. 다시 시도해 주세요.");
+
+      var url = CANONICAL_BASE + "?id=" + id;
+      $("shareUrl").value = url;
+      $("linkBox").hidden = false;
+      var count = 0;
+      trip.days.forEach(function(d){ count += d.items.length; });
+      $("linkMeta").textContent = "짧은 링크 · 일정 " + count + "건 · " + trip.days.length + "일 · " +
+        url.length + "자. 일정과 동행자 좋아요·메모는 서버에 저장되어 링크를 연 사람에게 보입니다.";
+      status("짧은 링크를 만들었습니다. [링크 복사]로 카톡에 붙여넣으세요.", "good");
+      render(trip, "paste", { shortId: id });
+    } catch (err) {
+      var msg = (err && err.message) ? err.message : "알 수 없는 오류";
+      if (!trip) { status(msg, "bad"); return; }
+      try {
+        var fallback = await encodeTrip(slimDoc(trip));
+        $("shareUrl").value = shareBase() + "#d=" + fallback;
+        $("linkBox").hidden = false;
+        $("linkMeta").textContent = "짧은 링크 대신 오프라인 #d= 링크를 만들었습니다. 이 링크는 일정이 주소 안에 들어 있어 서버 없이 열립니다.";
+        status("짧은 링크를 만들지 못했습니다 (" + msg + "). 대신 #d= 링크를 만들었습니다.", "bad");
+        render(trip, "paste");
+      } catch (e2) {
+        $("linkBox").hidden = true;
+        status(msg, "bad");
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   /* ── 이벤트 연결 ─────────────────────────────────────────── */
   $("toggleComposer").addEventListener("click", function(){
     setComposer($("composer").hidden);
   });
   $("noticeCompose").addEventListener("click", function(){ setComposer(true); });
   $("buildLink").addEventListener("click", buildLink);
+  $("makeShort").addEventListener("click", createShortLink);
   $("clearJson").addEventListener("click", function(){
     $("jsonInput").value = "";
     $("linkBox").hidden = true;
@@ -1173,12 +1447,47 @@
     toast("의견을 지웠습니다");
   });
   window.addEventListener("hashchange", function(){ boot(); });
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden && state.tripKey) loadReactions(true);
+  });
+  var nickEl = $("nickInput");
+  nickEl.addEventListener("input", function(){
+    try { localStorage.setItem(NICK_KEY, nickEl.value); } catch (e) { /* 저장 불가 */ }
+  });
 
   /* ── 시작 ─────────────────────────────────────────────────── */
   async function boot(){
-    var payload = readHashPayload();
     var errBox = $("errorNotice"), errText = $("errorText");
     errBox.hidden = true;
+    stopPoll();
+
+    /* 닉네임 불러오기 (기본: 동행자) */
+    try { nickEl.value = localStorage.getItem(NICK_KEY) || ""; } catch (e) { nickEl.value = ""; }
+
+    var shortParam = "";
+    try { shortParam = (new URLSearchParams(location.search).get("id") || "").trim(); } catch (e) { shortParam = ""; }
+    var payload = readHashPayload();
+
+    if (shortParam) {
+      $("schedule").innerHTML = "";
+      $("schedule").appendChild(h("p", { class: "skeleton", text: "공유된 일정을 여는 중…" }));
+      try {
+        var rows = await sbRequest("shared_trips?id=eq." + encodeURIComponent(shortParam) + "&select=id,title,payload");
+        var row = (rows && rows[0]) || null;
+        if (!row || !row.payload) throw new Error("이 짧은 링크의 일정을 찾지 못했습니다. 주소가 잘못되었거나 지워진 링크입니다.");
+        var shortTrip = normalize(row.payload);
+        render(shortTrip, "short", { shortId: shortParam });
+        return;
+      } catch (err) {
+        if (!payload) {
+          errText.textContent = "짧은 링크를 열지 못했습니다 — " + (err && err.message ? err.message : "알 수 없는 오류");
+          errBox.hidden = false;
+          renderSample();
+          return;
+        }
+        /* 주소에 #d= 도 함께 있으면 그짜로 넘어갑니다. */
+      }
+    }
 
     if (!payload) { renderSample(); return; }
 
